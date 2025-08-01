@@ -1,0 +1,26 @@
+{
+    "files.watcherExclude": {
+        "**/venv/**": true
+    },
+    "search.exclude": {
+        "**/venv/**": true
+    },
+    "python.linting.pylintPath": "venv/bin/pylint",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.formatting.provider": "black",
+    "jupyter.jupyterServerType": "local",
+    "python.linting.flake8Enabled": false,
+    "python.linting.pylintUseMinimalCheckers": false,
+    "logViewer.watch": [
+        {
+            "title": "collab logs",
+            "pattern": "logs/*.log"
+        },
+        {
+            "title": "user_study_data logs",
+            "pattern": "data/user_study_data/logs/*.log"
+        }
+    ],
+    "logViewer.logLevel": "debug"
+}
