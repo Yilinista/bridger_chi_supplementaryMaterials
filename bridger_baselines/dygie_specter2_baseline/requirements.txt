@@ -1,0 +1,27 @@
+# DyGIE++ + SPECTER2 Baseline Requirements
+
+# Core ML libraries
+torch>=1.6.0
+sentence-transformers>=2.0.0
+transformers>=4.0.0
+numpy>=1.19.0
+pandas>=1.1.0
+scikit-learn>=0.23.0
+
+# NLP libraries
+spacy>=3.0.0
+scispacy>=0.4.0
+
+# Utilities
+tqdm
+datasets
+huggingface-hub
+
+# For DyGIE++ (will be installed automatically)
+allennlp>=2.0.0
+overrides
+jsonnet
+cached-path
+
+# Scientific spaCy model (install separately)
+# pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.4.0/en_core_sci_sm-0.4.0.tar.gz
