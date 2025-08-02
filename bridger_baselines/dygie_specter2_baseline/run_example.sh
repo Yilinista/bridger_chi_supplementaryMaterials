@@ -4,7 +4,7 @@
 echo "DyGIE++ + SPECTER2 Bridger Baseline Example"
 
 # Set paths (modify these for your data)
-EVALUATION_DATA="/data/jx4237data/Graph-CoT/Pipeline/step1_process/strict_0.88_remove_case1_year2-5/paper_levels_0.88_year2-5.csv"
+EVALUATION_DATA="/home/jx4237/CM4AI/LLM-scientific-feedback-main/986_paper_matching_pairs.csv"
 EMBEDDING_DIR="../data/embeddings"
 
 cd scripts/

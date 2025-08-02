@@ -27,62 +27,108 @@ logger = logging.getLogger(__name__)
 
 
 class BridgerBaselines:
-    """Core Bridger baseline algorithms."""
+    """
+    Core Bridger baseline algorithms with support for both standard and persona modes.
     
-    def __init__(self, task_embeddings: Dict[str, np.ndarray], method_embeddings: Dict[str, np.ndarray]):
+    This class implements the ST (Similar Tasks) and sTdM (Similar Tasks, distant Methods)
+    recommendation algorithms from "Bursting Scientific Filter Bubbles" (CHI 2022).
+    
+    Features:
+    - Vectorized computation for optimal performance
+    - Automatic persona mode detection
+    - Support for multi-domain researcher modeling
+    - Author-level and persona-level recommendations
+    
+    Persona Mode Logic:
+    - Automatically detected when embedding keys contain hyphens (e.g., "author_id-persona_id")
+    - Each author can have multiple research personas (A, B, C, etc.)
+    - Recommendations computed at persona level, then aggregated to author level
+    - Enables fine-grained matching for multi-disciplinary researchers
+    """
+    
+    def __init__(self, task_embeddings: Dict[str, np.ndarray], method_embeddings: Dict[str, np.ndarray], 
+                 persona_mode: bool = False, author_personas: Dict[str, List[Dict]] = None):
         self.task_embeddings = task_embeddings
         self.method_embeddings = method_embeddings
-        self.author_ids = sorted(list(set(task_embeddings.keys()) | set(method_embeddings.keys())))
+        self.persona_mode = persona_mode
+        self.author_personas = author_personas or {}
+        
+        if persona_mode:
+            # In persona mode, keys are "author_id-persona_id"
+            self.persona_ids = sorted(list(set(task_embeddings.keys()) | set(method_embeddings.keys())))
+            self.author_ids = sorted(list(set(pid.split('-')[0] for pid in self.persona_ids)))
+            
+            # Create author to personas mapping
+            self.author_to_personas = {}
+            for persona_id in self.persona_ids:
+                author_id = persona_id.split('-')[0]
+                if author_id not in self.author_to_personas:
+                    self.author_to_personas[author_id] = []
+                self.author_to_personas[author_id].append(persona_id)
+        else:
+            # In standard mode, keys are author_ids
+            self.author_ids = sorted(list(set(task_embeddings.keys()) | set(method_embeddings.keys())))
+            self.persona_ids = []
+            self.author_to_personas = {}
     
     def st_baseline(self, focal_author: str, exclude_authors: List[str] = None, top_k: int = 10) -> List[Tuple[str, float]]:
-        """ST (Similar Tasks) baseline."""
+        """ST (Similar Tasks) baseline with vectorized computation."""
         if focal_author not in self.task_embeddings:
             return []
         
+        # Get candidate authors (excluding focal and excluded authors)
+        exclude_set = set([focal_author] + (exclude_authors or []))
+        candidate_authors = [aid for aid in self.author_ids 
+                           if aid not in exclude_set and aid in self.task_embeddings]
+        
+        if not candidate_authors:
+            return []
+        
+        # Vectorized computation
         focal_emb = self.task_embeddings[focal_author].reshape(1, -1)
-        results = []
+        candidate_embs = np.vstack([self.task_embeddings[aid] for aid in candidate_authors])
         
-        for author_id in self.author_ids:
-            if author_id == focal_author or (exclude_authors and author_id in exclude_authors):
-                continue
-            if author_id not in self.task_embeddings:
-                continue
-                
-            author_emb = self.task_embeddings[author_id].reshape(1, -1)
-            distance = cosine_distances(focal_emb, author_emb)[0][0]
-            similarity = 1 - distance
-            results.append((author_id, similarity))
+        # Compute all similarities at once
+        distances = cosine_distances(focal_emb, candidate_embs)[0]
+        similarities = 1 - distances
         
+        # Create results and sort
+        results = list(zip(candidate_authors, similarities))
         results.sort(key=lambda x: x[1], reverse=True)
         return results[:top_k]
     
     def stdm_baseline(self, focal_author: str, exclude_authors: List[str] = None, 
                      filter_k: int = 1000, top_k: int = 10) -> List[Tuple[str, float]]:
-        """sTdM (Similar Tasks, distant Methods) baseline."""
+        """sTdM (Similar Tasks, distant Methods) baseline with vectorized computation."""
         if focal_author not in self.task_embeddings or focal_author not in self.method_embeddings:
             return []
         
+        # Get candidate authors (excluding focal and excluded authors)
+        exclude_set = set([focal_author] + (exclude_authors or []))
+        candidate_authors = [aid for aid in self.author_ids 
+                           if aid not in exclude_set and 
+                           aid in self.task_embeddings and aid in self.method_embeddings]
+        
+        if not candidate_authors:
+            return []
+        
+        # Vectorized computation for all candidates
         focal_task = self.task_embeddings[focal_author].reshape(1, -1)
         focal_method = self.method_embeddings[focal_author].reshape(1, -1)
         
-        candidates = []
-        for author_id in self.author_ids:
-            if author_id == focal_author or (exclude_authors and author_id in exclude_authors):
-                continue
-            if author_id not in self.task_embeddings or author_id not in self.method_embeddings:
-                continue
-            
-            task_emb = self.task_embeddings[author_id].reshape(1, -1)
-            method_emb = self.method_embeddings[author_id].reshape(1, -1)
-            
-            task_dist = cosine_distances(focal_task, task_emb)[0][0]
-            method_dist = cosine_distances(focal_method, method_emb)[0][0]
-            
-            candidates.append({
-                'author_id': author_id,
-                'task_dist': task_dist,
-                'method_dist': method_dist
-            })
+        candidate_task_embs = np.vstack([self.task_embeddings[aid] for aid in candidate_authors])
+        candidate_method_embs = np.vstack([self.method_embeddings[aid] for aid in candidate_authors])
+        
+        # Compute all distances at once
+        task_distances = cosine_distances(focal_task, candidate_task_embs)[0]
+        method_distances = cosine_distances(focal_method, candidate_method_embs)[0]
+        
+        # Create candidate data
+        candidates = [{
+            'author_id': candidate_authors[i],
+            'task_dist': task_distances[i],
+            'method_dist': method_distances[i]
+        } for i in range(len(candidate_authors))]
         
         # Step 1: Filter by task similarity
         candidates.sort(key=lambda x: x['task_dist'])
@@ -99,6 +145,202 @@ class BridgerBaselines:
             results.append((candidate['author_id'], combined_score))
         
         return results
+    
+    def st_baseline_persona(self, focal_author: str, focal_persona: str = None, 
+                           exclude_authors: List[str] = None, top_k: int = 10) -> List[Tuple[str, float]]:
+        """
+        ST baseline with persona support and vectorized computation.
+        
+        This method operates at the persona level, enabling fine-grained similarity matching
+        for multi-domain researchers. Each author may have multiple research personas
+        (e.g., "NLP Expert", "Computer Vision Expert") derived from paper clustering.
+        
+        Algorithm Logic:
+        1. Determine focal persona (use primary if not specified)
+        2. Filter candidate personas (exclude focal author and specified exclusions)
+        3. Vectorized cosine similarity computation across all candidates
+        4. Return top-k most similar personas
+        
+        Args:
+            focal_author: The author seeking recommendations
+            focal_persona: Specific persona to use (None = use primary persona)
+            exclude_authors: Authors to exclude from recommendations
+            top_k: Number of recommendations to return
+            
+        Returns:
+            List of (persona_id, similarity_score) tuples, sorted by similarity
+            
+        Note:
+            Returns persona-level results. Use get_author_recommendations() for
+            author-level aggregation.
+        """
+        if not self.persona_mode:
+            # Fall back to regular ST baseline
+            return self.st_baseline(focal_author, exclude_authors, top_k)
+        
+        # Determine focal persona
+        if focal_persona is None:
+            # Use the first (primary) persona for this author
+            author_personas = self.author_to_personas.get(focal_author, [])
+            if not author_personas:
+                return []
+            focal_persona_id = author_personas[0]
+        else:
+            focal_persona_id = f"{focal_author}-{focal_persona}"
+        
+        if focal_persona_id not in self.task_embeddings:
+            return []
+        
+        # Get candidate personas (excluding focal author and excluded authors)
+        exclude_set = set([focal_author] + (exclude_authors or []))
+        candidate_personas = [pid for pid in self.persona_ids 
+                            if pid.split('-')[0] not in exclude_set and pid in self.task_embeddings]
+        
+        if not candidate_personas:
+            return []
+        
+        # Vectorized computation
+        focal_emb = self.task_embeddings[focal_persona_id].reshape(1, -1)
+        candidate_embs = np.vstack([self.task_embeddings[pid] for pid in candidate_personas])
+        
+        # Compute all similarities at once
+        distances = cosine_distances(focal_emb, candidate_embs)[0]
+        similarities = 1 - distances
+        
+        # Create results and sort
+        results = list(zip(candidate_personas, similarities))
+        results.sort(key=lambda x: x[1], reverse=True)
+        return results[:top_k]
+    
+    def stdm_baseline_persona(self, focal_author: str, focal_persona: str = None,
+                             exclude_authors: List[str] = None, filter_k: int = 1000, top_k: int = 10) -> List[Tuple[str, float]]:
+        """sTdM baseline with persona support and vectorized computation."""
+        if not self.persona_mode:
+            # Fall back to regular sTdM baseline
+            return self.stdm_baseline(focal_author, exclude_authors, filter_k, top_k)
+        
+        # Determine focal persona
+        if focal_persona is None:
+            author_personas = self.author_to_personas.get(focal_author, [])
+            if not author_personas:
+                return []
+            focal_persona_id = author_personas[0]
+        else:
+            focal_persona_id = f"{focal_author}-{focal_persona}"
+        
+        if (focal_persona_id not in self.task_embeddings or 
+            focal_persona_id not in self.method_embeddings):
+            return []
+        
+        # Get candidate personas (excluding focal author and excluded authors)
+        exclude_set = set([focal_author] + (exclude_authors or []))
+        candidate_personas = [pid for pid in self.persona_ids 
+                            if pid.split('-')[0] not in exclude_set and 
+                            pid in self.task_embeddings and pid in self.method_embeddings]
+        
+        if not candidate_personas:
+            return []
+        
+        # Vectorized computation for all candidates
+        focal_task = self.task_embeddings[focal_persona_id].reshape(1, -1)
+        focal_method = self.method_embeddings[focal_persona_id].reshape(1, -1)
+        
+        candidate_task_embs = np.vstack([self.task_embeddings[pid] for pid in candidate_personas])
+        candidate_method_embs = np.vstack([self.method_embeddings[pid] for pid in candidate_personas])
+        
+        # Compute all distances at once
+        task_distances = cosine_distances(focal_task, candidate_task_embs)[0]
+        method_distances = cosine_distances(focal_method, candidate_method_embs)[0]
+        
+        # Create candidate data
+        candidates = [{
+            'persona_id': candidate_personas[i],
+            'task_dist': task_distances[i],
+            'method_dist': method_distances[i]
+        } for i in range(len(candidate_personas))]
+        
+        # Step 1: Filter by task similarity
+        candidates.sort(key=lambda x: x['task_dist'])
+        filtered = candidates[:filter_k]
+        
+        # Step 2: Re-rank by method dissimilarity
+        filtered.sort(key=lambda x: x['method_dist'], reverse=True)
+        
+        results = []
+        for candidate in filtered[:top_k]:
+            task_sim = 1 - candidate['task_dist']
+            method_dissim = candidate['method_dist']
+            combined_score = task_sim + method_dissim
+            results.append((candidate['persona_id'], combined_score))
+        
+        return results
+    
+    def get_author_recommendations(self, focal_author: str, method: str = "ST", 
+                                  exclude_authors: List[str] = None, top_k: int = 10) -> List[Tuple[str, str, float]]:
+        """
+        Get author-level recommendations by aggregating persona-level results.
+        
+        This is the main recommendation interface that handles both standard and persona modes.
+        In persona mode, it performs persona-level computation and aggregates to author level
+        by selecting the best-matching persona for each candidate author.
+        
+        Aggregation Logic (Persona Mode):
+        1. Retrieve 3x more persona-level results for better coverage
+        2. Group results by candidate author
+        3. Select highest-scoring persona for each author
+        4. Sort authors by best persona scores
+        5. Return top-k author recommendations
+        
+        Algorithm Selection:
+        - "ST": Similar Tasks baseline (task similarity only)
+        - "sTdM": Similar Tasks, distant Methods (task similarity + method dissimilarity)
+        
+        Args:
+            focal_author: The author seeking recommendations
+            method: Algorithm to use ("ST" or "sTdM")
+            exclude_authors: Authors to exclude from recommendations
+            top_k: Number of author recommendations to return
+            
+        Returns:
+            List of (author_id, best_persona_id, score) tuples
+            - author_id: Recommended author
+            - best_persona_id: Best matching persona (empty string in standard mode)
+            - score: Similarity/combined score from best persona
+            
+        Example:
+            >>> recommendations = baselines.get_author_recommendations("1891568", "ST", top_k=5)
+            >>> for author_id, persona_id, score in recommendations:
+            ...     print(f"Author {author_id} (persona {persona_id}): {score:.4f}")
+        """
+        if not self.persona_mode:
+            # Convert regular baseline results to expected format
+            if method == "ST":
+                results = self.st_baseline(focal_author, exclude_authors, top_k)
+            else:
+                results = self.stdm_baseline(focal_author, exclude_authors, top_k=top_k)
+            
+            return [(author_id, "", score) for author_id, score in results]
+        
+        # Persona mode: get persona-level results and aggregate by author
+        if method == "ST":
+            persona_results = self.st_baseline_persona(focal_author, exclude_authors=exclude_authors, top_k=top_k*3)
+        else:
+            persona_results = self.stdm_baseline_persona(focal_author, exclude_authors=exclude_authors, top_k=top_k*3)
+        
+        # Aggregate by author (take best persona per author)
+        author_scores = {}
+        for persona_id, score in persona_results:
+            candidate_author = persona_id.split('-')[0]
+            persona_suffix = persona_id.split('-', 1)[1] if '-' in persona_id else ""
+            
+            if candidate_author not in author_scores or score > author_scores[candidate_author][1]:
+                author_scores[candidate_author] = (persona_suffix, score)
+        
+        # Convert to list and sort
+        author_results = [(author, persona, score) for author, (persona, score) in author_scores.items()]
+        author_results.sort(key=lambda x: x[2], reverse=True)
+        
+        return author_results[:top_k]
 
 
 def load_author_paper_data(paper_nodes_path: str, author_kg_path: str, evaluation_authors: set) -> Dict[str, List[Dict]]:
@@ -128,6 +370,7 @@ def load_author_paper_data(paper_nodes_path: str, author_kg_path: str, evaluatio
                     
                     if title:
                         papers_data.append({
+                            'paper_id': paper_id,  # Preserve paper ID for weighting
                             'title': re.sub(r'<[^>]+>', '', title),
                             'abstract': re.sub(r'<[^>]+>', '', abstract) if abstract else ''
                         })
@@ -179,7 +422,14 @@ def compute_embeddings(author_papers: Dict[str, List[Dict]]) -> Tuple[Dict[str, 
     
     for author_id, papers in author_papers.items():
         # Combine all paper texts
-        combined_text = ' '.join([p['title'] + ' ' + p['abstract'] for p in papers])
+        # Combine papers following original paper format
+        combined_texts = []
+        for p in papers:
+            title = p['title'].strip()
+            abstract = p['abstract'].strip()
+            text = f"{title}. {abstract}" if abstract else title
+            combined_texts.append(text)
+        combined_text = ' '.join(combined_texts)
         
         # Extract terms
         task_terms, method_terms = extract_terms(combined_text)
@@ -217,8 +467,26 @@ def evaluate_baselines(baselines: BridgerBaselines, evaluation_data_path: str) -
     for _, row in df.iterrows():
         try:
             import ast
-            team_authors = ast.literal_eval(row['author2'])
-            gt_authors = set(row['ground_truth_authors'].split('|')) if pd.notna(row['ground_truth_authors']) else set()
+            # Adapt to 986_paper_matching_pairs.csv format
+            if 'author2' in row:
+                team_authors = ast.literal_eval(row['author2'])
+            elif 'author_old_paper' in row:
+                team_authors = ast.literal_eval(row['author_old_paper'])
+            else:
+                continue
+            
+            # Handle ground_truth_authors format    
+            if pd.notna(row['ground_truth_authors']):
+                if '|' in str(row['ground_truth_authors']):
+                    gt_authors = set(row['ground_truth_authors'].split('|'))
+                else:
+                    # Assume it's already a list-like string or list
+                    try:
+                        gt_authors = set(ast.literal_eval(row['ground_truth_authors']))
+                    except:
+                        gt_authors = set([str(row['ground_truth_authors'])])
+            else:
+                gt_authors = set()
             
             if not team_authors or not gt_authors:
                 continue
@@ -291,12 +559,27 @@ def run_bridger_evaluation(evaluation_data_path: str,
     for _, row in df.iterrows():
         try:
             import ast
-            team_authors = ast.literal_eval(row['author2'])
+            # Adapt to 986_paper_matching_pairs.csv format
+            if 'author2' in row:
+                team_authors = ast.literal_eval(row['author2'])
+            elif 'author_old_paper' in row:
+                team_authors = ast.literal_eval(row['author_old_paper'])
+            else:
+                continue
+                
             evaluation_authors.update(team_authors)
             
+            # Handle ground_truth_authors format
             if pd.notna(row['ground_truth_authors']):
-                gt_authors = row['ground_truth_authors'].split('|')
-                evaluation_authors.update([a.strip() for a in gt_authors])
+                if '|' in str(row['ground_truth_authors']):
+                    gt_authors = row['ground_truth_authors'].split('|')
+                    evaluation_authors.update([a.strip() for a in gt_authors])
+                else:
+                    try:
+                        gt_authors = ast.literal_eval(row['ground_truth_authors'])
+                        evaluation_authors.update(gt_authors)
+                    except:
+                        evaluation_authors.add(str(row['ground_truth_authors']))
         except:
             continue
     
@@ -318,7 +601,7 @@ def run_bridger_evaluation(evaluation_data_path: str,
 
 
 if __name__ == "__main__":
-    evaluation_data_path = "/data/jx4237data/Graph-CoT/Pipeline/step1_process/strict_0.88_remove_case1_year2-5/paper_levels_0.88_year2-5.csv"
+    evaluation_data_path = "/home/jx4237/CM4AI/LLM-scientific-feedback-main/986_paper_matching_pairs.csv"
     
     results = run_bridger_evaluation(evaluation_data_path)
     

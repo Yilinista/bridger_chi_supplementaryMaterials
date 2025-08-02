@@ -15,7 +15,7 @@ from bridger_baselines import run_bridger_evaluation
 
 # Run evaluation on your BetterTeaming data
 results = run_bridger_evaluation(
-    evaluation_data_path="path/to/paper_levels_0.88_year2-5.csv"
+    evaluation_data_path="/home/jx4237/CM4AI/LLM-scientific-feedback-main/986_paper_matching_pairs.csv"
 )
 
 print(f"ST Hit@10: {results['ST']['Hit@10']:.4f}")

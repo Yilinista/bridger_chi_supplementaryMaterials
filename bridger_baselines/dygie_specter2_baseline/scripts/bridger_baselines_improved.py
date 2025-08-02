@@ -15,11 +15,15 @@ import json
 import pandas as pd
 import numpy as np
 import logging
+import pickle
 from typing import Dict, List, Tuple
 from pathlib import Path
 import argparse
 
 # Import the original baseline classes
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from bridger_baselines import BridgerBaselines, evaluate_baselines
 
 # Import the embedding manager
@@ -34,7 +38,8 @@ def run_bridger_evaluation_improved(
     paper_nodes_path: str = "/data/jx4237data/Graph-CoT/Pipeline/2024_updated_data/papernodes_remove0/paper_nodes_2024dec.json",
     author_kg_path: str = "/data/jx4237data/Graph-CoT/Pipeline/2024_updated_data/authorkg_remove0/author_knowledge_graph_2024.json",
     embedding_storage_dir: str = "./bridger_embeddings",
-    force_regenerate: bool = False
+    force_regenerate: bool = False,
+    enable_persona: bool = False
 ) -> Dict[str, Dict[str, float]]:
     """
     Run Bridger baseline evaluation using DyGIE++ + SPECTER2 embeddings.
@@ -45,6 +50,7 @@ def run_bridger_evaluation_improved(
         author_kg_path: Path to author knowledge graph JSON
         embedding_storage_dir: Directory containing precomputed embeddings
         force_regenerate: Whether to force regeneration of embeddings
+        enable_persona: Whether to enable persona mode during generation
         
     Returns:
         Evaluation results for ST and sTdM baselines
@@ -103,17 +109,48 @@ def run_bridger_evaluation_improved(
         # Generate and store embeddings
         task_embeddings, method_embeddings = embedding_manager.generate_and_store_embeddings(
             author_papers, 
-            force_regenerate=force_regenerate
+            force_regenerate=force_regenerate,
+            enable_persona=enable_persona
         )
     
-    # Filter embeddings to evaluation authors only
-    eval_task_embeddings = {k: v for k, v in task_embeddings.items() if k in evaluation_authors}
-    eval_method_embeddings = {k: v for k, v in method_embeddings.items() if k in evaluation_authors}
+    # Filter embeddings to evaluation authors only (handle both persona and author keys)
+    if enable_persona or any('-' in k for k in task_embeddings.keys()):
+        # Persona mode: filter by author prefix
+        eval_task_embeddings = {k: v for k, v in task_embeddings.items() if k.split('-')[0] in evaluation_authors}
+        eval_method_embeddings = {k: v for k, v in method_embeddings.items() if k.split('-')[0] in evaluation_authors}
+    else:
+        # Standard mode: filter by author ID
+        eval_task_embeddings = {k: v for k, v in task_embeddings.items() if k in evaluation_authors}
+        eval_method_embeddings = {k: v for k, v in method_embeddings.items() if k in evaluation_authors}
     
     logger.info(f"Using embeddings: {len(eval_task_embeddings)} task, {len(eval_method_embeddings)} method")
     
+    # Check if we're in persona mode
+    persona_mode = enable_persona or any('-' in k for k in eval_task_embeddings.keys())
+    author_personas = {}
+    
+    if persona_mode:
+        try:
+            # Try to load persona data
+            persona_pickle_path = embedding_manager.storage_dir / "persona_embeddings.pkl"
+            
+            if persona_pickle_path.exists():
+                with open(persona_pickle_path, 'rb') as f:
+                    persona_data = pickle.load(f)
+                
+                if "author_personas" in persona_data:
+                    author_personas = persona_data["author_personas"]
+                    logger.info("Loaded persona mode embeddings")
+                else:
+                    logger.info("Persona mode enabled but no persona data found")
+        except Exception as e:
+            logger.warning(f"Failed to load persona data: {e}")
+    
+    logger.info(f"Persona mode: {'enabled' if persona_mode else 'disabled'}")
+    
     # Initialize baselines with embeddings
-    baselines = BridgerBaselines(eval_task_embeddings, eval_method_embeddings)
+    baselines = BridgerBaselines(eval_task_embeddings, eval_method_embeddings, 
+                                persona_mode=persona_mode, author_personas=author_personas)
     
     # Run evaluation
     logger.info("Running baseline evaluation...")
@@ -239,6 +276,11 @@ def main():
         action="store_true",
         help="Only show embedding statistics"
     )
+    parser.add_argument(
+        "--enable-persona",
+        action="store_true",
+        help="Enable persona mode during embedding generation"
+    )
     
     args = parser.parse_args()
     
@@ -258,7 +300,8 @@ def main():
         "paper_nodes_path": args.paper_nodes,
         "author_kg_path": args.author_kg,
         "embedding_storage_dir": args.embedding_dir,
-        "force_regenerate": args.force_regenerate
+        "force_regenerate": args.force_regenerate,
+        "enable_persona": args.enable_persona
     }
     
     # Run evaluation

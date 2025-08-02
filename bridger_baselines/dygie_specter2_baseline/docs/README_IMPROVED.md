@@ -7,7 +7,7 @@ This implementation follows the original Bridger paper methodology using:
 
 ## Setup
 
-### Automated Setup (Recommended)
+### Automated Setup
 ```bash
 python setup_dygie_specter2.py
 ```
@@ -35,7 +35,7 @@ tar -xzf scierc.tar.gz
 
 ## Usage
 
-### Step 1: Generate Embeddings (One-time)
+### Step 1: Generate Embeddings 
 
 ```bash
 python embedding_generator.py \
@@ -51,7 +51,7 @@ python embedding_generator.py \
 - `--force-regenerate`: Force regeneration even if embeddings exist
 - `--stats-only`: Show embedding statistics only
 
-### Step 2: Run Evaluation (Fast)
+### Step 2: Run Evaluation 
 
 ```bash
 python bridger_baselines_improved.py \
@@ -131,27 +131,6 @@ Process datasets in smaller batches or increase system memory.
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 ```
 
-## Integration Example
-
-```python
-from bridger_baselines_improved import run_bridger_evaluation_improved
-
-# Run evaluation
-results = run_bridger_evaluation_improved("/path/to/evaluation.csv")
-
-# Results format
-{
-    'ST': {'Hit@10': 0.35, 'MRR': 0.18, 'Queries': 1250},
-    'sTdM': {'Hit@10': 0.25, 'MRR': 0.12, 'Queries': 1250}
-}
-```
-
-## Performance Tips
-
-1. **Use SSD Storage**: Store embeddings on SSD for faster I/O
-2. **Sufficient RAM**: Ensure at least 8GB RAM for large author sets
-3. **GPU Acceleration**: Use GPU for faster SPECTER2 embedding generation
-4. **Batch Processing**: Process large datasets in batches if memory constrained
 
 ## References
 
