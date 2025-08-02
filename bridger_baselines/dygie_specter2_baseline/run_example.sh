@@ -1,7 +1,7 @@
 #!/bin/bash
 # Example script to run DyGIE++ + SPECTER2 baseline
 
-echo "=== DyGIE++ + SPECTER2 Bridger Baseline Example ==="
+echo "DyGIE++ + SPECTER2 Bridger Baseline Example"
 
 # Set paths (modify these for your data)
 EVALUATION_DATA="/data/jx4237data/Graph-CoT/Pipeline/step1_process/strict_0.88_remove_case1_year2-5/paper_levels_0.88_year2-5.csv"

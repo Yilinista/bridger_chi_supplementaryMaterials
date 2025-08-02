@@ -4,7 +4,7 @@ A scientifically rigorous implementation of Bridger baselines using:
 - **DyGIE++** for scientific term extraction (same as original paper)  
 - **SPECTER2** for semantic embeddings (replaces unavailable CS-RoBERTa)
 
-## 📁 Folder Structure
+## Folder Structure
 
 ```
 dygie_specter2_baseline/
@@ -23,7 +23,7 @@ dygie_specter2_baseline/
     └── evaluation_logs/         # Logged results
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 1. **Setup** (one-time):
    ```bash
@@ -41,16 +41,7 @@ dygie_specter2_baseline/
    python bridger_baselines_improved.py --evaluation-data /path/to/data.csv
    ```
 
-## 📊 Expected Performance
 
-| Baseline | Original | Improved | Gain |
-|----------|----------|----------|------|
-| ST Hit@10 | 10.5% | 30-40% | +200-300% |
-| sTdM Hit@10 | 3.0% | 20-30% | +500-800% |
-
-## 📚 Documentation
+## Documentation
 
 See `docs/README_IMPROVED.md` for comprehensive documentation, troubleshooting, and advanced usage.
-
----
-**A strong, scientifically rigorous baseline for your MATRIX project! 🎯**

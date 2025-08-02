@@ -18,9 +18,9 @@ data/
 
 ## Storage Requirements
 
-- **Small dataset** (~1K authors): ~10-50 MB
-- **Medium dataset** (~10K authors): ~100-500 MB  
-- **Large dataset** (~100K authors): ~1-5 GB
+- Small dataset (~1K authors): ~10-50 MB
+- Medium dataset (~10K authors): ~100-500 MB  
+- Large dataset (~100K authors): ~1-5 GB
 
 ## Notes
 

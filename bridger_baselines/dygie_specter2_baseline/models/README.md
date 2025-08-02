@@ -18,16 +18,16 @@ models/
 ## Models Used
 
 1. **DyGIE++ SciERC Model**
-   - **Purpose**: Scientific term extraction
-   - **Source**: https://ai2-s2-dygiepp.s3.amazonaws.com/models/scierc.tar.gz
-   - **Size**: ~500 MB
-   - **Description**: Pre-trained on scientific literature for NER and relation extraction
+   - Purpose: Scientific term extraction
+   - Source: https://ai2-s2-dygiepp.s3.amazonaws.com/models/scierc.tar.gz
+   - Size: ~500 MB
+   - Description: Pre-trained on scientific literature for NER and relation extraction
 
 2. **SPECTER2**
-   - **Purpose**: Semantic embeddings for scientific text
-   - **Source**: `allenai/specter2_base` (HuggingFace)
-   - **Size**: ~500 MB (downloaded automatically)
-   - **Description**: Scientific document embeddings model
+   - Purpose: Semantic embeddings for scientific text
+   - Source: `allenai/specter2_base` (HuggingFace)
+   - Size: ~500 MB (downloaded automatically)
+   - Description: Scientific document embeddings model
 
 ## Setup
 
