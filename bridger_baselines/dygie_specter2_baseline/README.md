@@ -1,8 +1,7 @@
 # DyGIE++ + SPECTER2 Bridger Baseline
 
-A scientifically rigorous implementation of Bridger baselines using:
 - **DyGIE++** for scientific term extraction (same as original paper)  
-- **SPECTER2** for semantic embeddings (replaces unavailable CS-RoBERTa)
+- **SPECTER2** for semantic embeddings (replaces CS-RoBERTa)
 
 ## Folder Structure
 
@@ -25,18 +24,18 @@ dygie_specter2_baseline/
 
 ## Quick Start
 
-1. **Setup** (one-time):
+1. **Setup** :
    ```bash
    cd scripts/
    python setup_dygie_specter2.py
    ```
 
-2. **Generate embeddings** (one-time, may take hours):
+2. **Generate embeddings** :
    ```bash
    python embedding_generator.py --evaluation-data /path/to/data.csv --force-regenerate
    ```
 
-3. **Run evaluation** (fast, seconds):
+3. **Run evaluation** :
    ```bash
    python bridger_baselines_improved.py --evaluation-data /path/to/data.csv
    ```

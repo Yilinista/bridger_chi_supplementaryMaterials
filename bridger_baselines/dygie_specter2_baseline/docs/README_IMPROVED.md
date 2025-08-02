@@ -2,7 +2,7 @@
 
 This implementation follows the original Bridger paper methodology using:
 - **DyGIE++** for scientific term extraction
-- **SPECTER2** for semantic embeddings (replaces unavailable CS-RoBERTa)
+- **SPECTER2** for semantic embeddings (replaces CS-RoBERTa)
 - **Precomputed embeddings** for fast evaluation
 
 ## Setup
@@ -66,19 +66,13 @@ python bridger_baselines_improved.py \
 - `--force-regenerate`: Force regeneration of embeddings
 - `--stats-only`: Show embedding statistics only
 
-## Expected Results
-
-| Baseline | Original | Improved | Expected Gain |
-|----------|----------|----------|---------------|
-| ST Hit@10 | 10.5% | 30-40% | +200-300% |
-| sTdM Hit@10 | 3.0% | 20-30% | +500-800% |
 
 ## Architecture Comparison
 
 | Component | Original Paper | Our Implementation |
 |-----------|----------------|-------------------|
 | **Term Extraction** | DyGIE++ | DyGIE++ |
-| **Term Embedding** | CS-RoBERTa (unavailable) | SPECTER2 |
+| **Term Embedding** | CS-RoBERTa | SPECTER2 |
 | **Algorithm Logic** | ST/sTdM cosine similarity | ST/sTdM cosine similarity |
 
 ## File Structure
