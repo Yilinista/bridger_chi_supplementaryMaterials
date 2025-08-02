@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Data Path Verification Script
-验证所有数据路径是否存在并可访问
+Verify all data paths exist and are accessible
 """
 
 import os
@@ -10,90 +10,90 @@ import json
 from pathlib import Path
 
 def verify_paths():
-    """验证所有关键数据路径"""
+    """Verify all critical data paths"""
     
     print("=" * 60)
     print("DATA PATH VERIFICATION")
     print("=" * 60)
     
-    # 定义所有数据路径
+    # Define all data paths
     paths = {
-        "评估数据 (Evaluation Data)": "/home/jx4237/CM4AI/LLM-scientific-feedback-main/986_paper_matching_pairs.csv",
-        "论文节点 (Paper Nodes)": "/data/jx4237data/Graph-CoT/Pipeline/2024_updated_data/papernodes_remove0/paper_nodes_2024dec.json",
-        "作者知识图谱 (Author KG)": "/data/jx4237data/Graph-CoT/Pipeline/2024_updated_data/authorkg_remove0/author_knowledge_graph_2024.json",
-        "DyGIE++模型 (DyGIE++ Model)": "./dygie_specter2_baseline/dygiepp/pretrained/scierc.tar.gz"
+        "Evaluation Data": "/home/jx4237/CM4AI/LLM-scientific-feedback-main/986_paper_matching_pairs.csv",
+        "Paper Nodes": "/data/jx4237data/Graph-CoT/Pipeline/2024_updated_data/papernodes_remove0/paper_nodes_2024dec.json",
+        "Author Knowledge Graph": "/data/jx4237data/Graph-CoT/Pipeline/2024_updated_data/authorkg_remove0/author_knowledge_graph_2024.json",
+        "DyGIE++ Model": "./dygie_specter2_baseline/dygiepp/pretrained/scierc.tar.gz"
     }
     
     all_good = True
     
     for name, path in paths.items():
         print(f"\n{name}:")
-        print(f"  路径: {path}")
+        print(f"  Path: {path}")
         
         if os.path.exists(path):
-            print(f"  ✅ 文件存在")
+            print(f"  Status: File exists")
             
-            # 获取文件大小
+            # Get file size
             size_mb = os.path.getsize(path) / (1024 * 1024)
-            print(f"  📏 大小: {size_mb:.1f} MB")
+            print(f"  Size: {size_mb:.1f} MB")
             
-            # 特殊检查
+            # Special checks
             if path.endswith('.csv'):
                 try:
                     df = pd.read_csv(path)
-                    print(f"  📊 CSV形状: {df.shape}")
-                    print(f"  📋 列名: {list(df.columns)}")
+                    print(f"  CSV shape: {df.shape}")
+                    print(f"  Columns: {list(df.columns)}")
                     
-                    # 检查关键列
+                    # Check key columns
                     if 'author2' in df.columns:
-                        print(f"  ✅ 包含 'author2' 列")
+                        print(f"  Contains 'author2' column")
                     elif 'author_old_paper' in df.columns:
-                        print(f"  ✅ 包含 'author_old_paper' 列 (可映射为team_authors)")
+                        print(f"  Contains 'author_old_paper' column (can map to team_authors)")
                     else:
-                        print(f"  ⚠️  缺少 'author2' 或 'author_old_paper' 列")
+                        print(f"  Warning: Missing 'author2' or 'author_old_paper' column")
                         all_good = False
                         
                 except Exception as e:
-                    print(f"  ❌ CSV读取失败: {e}")
+                    print(f"  Error: CSV read failed: {e}")
                     all_good = False
                     
             elif path.endswith('.json'):
                 try:
                     with open(path, 'r') as f:
                         data = json.load(f)
-                    print(f"  📊 JSON条目数: {len(data)}")
+                    print(f"  JSON entries: {len(data)}")
                     
-                    # 显示几个键示例
+                    # Show sample keys
                     if isinstance(data, dict):
                         sample_keys = list(data.keys())[:3]
-                        print(f"  🔑 示例键: {sample_keys}")
+                        print(f"  Sample keys: {sample_keys}")
                         
                 except Exception as e:
-                    print(f"  ❌ JSON读取失败: {e}")
+                    print(f"  Error: JSON read failed: {e}")
                     all_good = False
                     
         else:
-            print(f"  ❌ 文件不存在")
+            print(f"  Error: File does not exist")
             all_good = False
     
     print(f"\n{'=' * 60}")
     if all_good:
-        print("✅ 所有数据路径验证通过！")
-        print("📌 系统已准备好运行Bridger基线评估")
+        print("All data paths verified successfully!")
+        print("System ready to run Bridger baseline evaluation")
     else:
-        print("❌ 部分数据路径存在问题")
-        print("⚠️  请检查并修复上述问题后再运行")
+        print("Some data paths have issues")
+        print("Please check and fix the above issues before running")
     print("=" * 60)
     
     return all_good
 
 def check_evaluation_data_format():
-    """详细检查评估数据格式"""
+    """Check evaluation data format in detail"""
     
     eval_path = "/home/jx4237/CM4AI/LLM-scientific-feedback-main/986_paper_matching_pairs.csv"
     
     if not os.path.exists(eval_path):
-        print(f"❌ 评估数据文件不存在: {eval_path}")
+        print(f"Error: Evaluation data file not found: {eval_path}")
         return False
     
     print(f"\n{'=' * 60}")
@@ -102,69 +102,69 @@ def check_evaluation_data_format():
     
     try:
         df = pd.read_csv(eval_path)
-        print(f"📊 数据形状: {df.shape}")
-        print(f"📋 列名: {list(df.columns)}")
+        print(f"Data shape: {df.shape}")
+        print(f"Columns: {list(df.columns)}")
         
-        # 显示前几行数据结构
-        print(f"\n前5行数据预览:")
+        # Show first few rows
+        print(f"\nFirst 5 rows preview:")
         pd.set_option('display.max_columns', None)
         pd.set_option('display.width', None)
         print(df.head())
         
-        # 检查必需的列
+        # Check required columns
         required_columns = ['author2', 'author_old_paper']  # Either one is acceptable
         optional_columns = ['ground_truth_authors']
         
-        print(f"\n列检查:")
+        print(f"\nColumn check:")
         has_required = False
         for col in required_columns:
             if col in df.columns:
                 non_null_count = df[col].notna().sum()
-                print(f"  ✅ {col}: {non_null_count}/{len(df)} 非空")
+                print(f"  {col}: {non_null_count}/{len(df)} non-null")
                 has_required = True
         
         if not has_required:
-            print(f"  ❌ 缺少必需列: {required_columns} 中的任意一个")
+            print(f"  Error: Missing required columns: any of {required_columns}")
             return False
         
         for col in optional_columns:
             if col in df.columns:
                 non_null_count = df[col].notna().sum()
-                print(f"  ⚠️  {col}: {non_null_count}/{len(df)} 非空 (可选)")
+                print(f"  {col}: {non_null_count}/{len(df)} non-null (optional)")
             else:
-                print(f"  ⚠️  缺少可选列: {col}")
+                print(f"  Warning: Missing optional column: {col}")
         
-        # 检查作者列的格式
+        # Check author column format
         author_col = 'author2' if 'author2' in df.columns else 'author_old_paper'
-        print(f"\n{author_col}列格式检查:")
+        print(f"\n{author_col} column format check:")
         sample_authors = df[author_col].dropna().head(3)
         for i, authors in enumerate(sample_authors):
-            print(f"  样本 {i+1}: {authors}")
+            print(f"  Sample {i+1}: {authors}")
             try:
                 import ast
                 parsed = ast.literal_eval(authors)
-                print(f"    解析结果: {len(parsed)} 个作者")
+                print(f"    Parsed result: {len(parsed)} authors")
             except:
-                print(f"    ⚠️  无法解析为Python列表")
+                print(f"    Warning: Cannot parse as Python list")
         
         return True
         
     except Exception as e:
-        print(f"❌ 读取评估数据失败: {e}")
+        print(f"Error: Failed to read evaluation data: {e}")
         return False
 
 if __name__ == "__main__":
-    # 验证所有路径
+    # Verify all paths
     paths_ok = verify_paths()
     
-    # 详细检查评估数据格式
+    # Check evaluation data format in detail
     format_ok = check_evaluation_data_format()
     
     if paths_ok and format_ok:
-        print(f"\n🎉 所有验证通过！系统可以开始运行。")
-        print(f"\n📚 接下来可以运行:")
+        print(f"\nAll verification passed! System ready to run.")
+        print(f"\nNext steps:")
         print(f"   python bridger_baselines.py")
-        print(f"   或")
+        print(f"   or")
         print(f"   python dygie_specter2_baseline/scripts/embedding_generator.py --evaluation-data /home/jx4237/CM4AI/LLM-scientific-feedback-main/986_paper_matching_pairs.csv")
     else:
-        print(f"\n⚠️  请先解决上述问题。")
+        print(f"\nPlease fix the above issues first.")
