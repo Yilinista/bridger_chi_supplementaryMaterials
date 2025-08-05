@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-spaCy-based term extractor as fallback when DyGIE++ is not available
+spaCy-based term extractor with configurable keywords and stopwords
 """
 
 import spacy
 import re
+import json
 import logging
-from typing import Dict, List
+from typing import Dict, List, Set
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -14,10 +15,11 @@ logger = logging.getLogger(__name__)
 class SpaCyTermExtractor:
     """Extract scientific terms using spaCy NER and rule-based patterns"""
     
-    def __init__(self):
+    def __init__(self, config_dir: str = None):
         self.nlp = None
+        self.config_dir = config_dir or Path(__file__).parent.parent / "config"
+        self._load_config()
         self._load_spacy()
-        self._setup_patterns()
     
     def _load_spacy(self):
         """Load spaCy model for text processing"""
@@ -32,39 +34,72 @@ class SpaCyTermExtractor:
                 except OSError:
                     raise RuntimeError("No spaCy model found. Please install: python -m spacy download en_core_web_sm")
     
-    def _setup_patterns(self):
-        """Setup patterns for identifying scientific terms"""
-        # Method keywords - things that describe HOW research is done
+    def _load_config(self):
+        """Load configuration from external files"""
+        config_dir = Path(self.config_dir)
+        
+        # Load term classification config
+        term_config_path = config_dir / "term_classification.json"
+        try:
+            with open(term_config_path, 'r') as f:
+                term_config = json.load(f)
+            
+            self.method_keywords = set(term_config["method_keywords"])
+            self.task_keywords = set(term_config["task_keywords"])
+            self.weights = term_config["classification_weights"]
+            self.scientific_indicators = term_config["scientific_indicators"]
+            
+            logger.info(f"Loaded term classification config: {len(self.method_keywords)} method keywords, {len(self.task_keywords)} task keywords")
+            
+        except Exception as e:
+            logger.warning(f"Failed to load term classification config: {e}. Using defaults.")
+            self._setup_default_patterns()
+        
+        # Load stopwords config
+        stopwords_config_path = config_dir / "stopwords.json"
+        try:
+            with open(stopwords_config_path, 'r') as f:
+                stopwords_config = json.load(f)
+            
+            # Combine all stopword categories
+            self.stopwords = set()
+            self.stopwords.update(stopwords_config["english_stopwords"])
+            self.stopwords.update(stopwords_config["academic_stopwords"]) 
+            self.stopwords.update(stopwords_config["scientific_noise_words"])
+            
+            logger.info(f"Loaded {len(self.stopwords)} stopwords from config")
+            
+        except Exception as e:
+            logger.warning(f"Failed to load stopwords config: {e}. Using minimal defaults.")
+            self.stopwords = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'}
+    
+    def _setup_default_patterns(self):
+        """Fallback method to setup default patterns if config loading fails"""
+        # Minimal default keywords
         self.method_keywords = {
             'algorithm', 'method', 'approach', 'technique', 'framework', 'model', 'system',
-            'neural', 'network', 'deep', 'learning', 'machine', 'statistical', 'regression',
-            'classification', 'clustering', 'optimization', 'search', 'genetic', 'evolutionary',
-            'bayesian', 'probabilistic', 'stochastic', 'deterministic', 'heuristic',
-            'supervised', 'unsupervised', 'reinforcement', 'semi-supervised',
-            'convolutional', 'recurrent', 'transformer', 'attention', 'encoder', 'decoder',
-            'feature', 'extraction', 'selection', 'engineering', 'preprocessing',
-            'training', 'testing', 'validation', 'cross-validation', 'evaluation',
-            'metric', 'measure', 'score', 'accuracy', 'precision', 'recall', 'f1',
-            'loss', 'function', 'objective', 'cost', 'penalty', 'regularization',
-            'gradient', 'descent', 'backpropagation', 'forward', 'backward',
-            'linear', 'nonlinear', 'kernel', 'support', 'vector', 'decision', 'tree',
-            'random', 'forest', 'ensemble', 'boosting', 'bagging', 'voting'
+            'neural', 'network', 'deep', 'learning', 'machine', 'statistical'
         }
         
-        # Task keywords - things that describe WHAT is being solved
         self.task_keywords = {
             'task', 'problem', 'application', 'domain', 'field', 'area', 'research',
-            'recognition', 'detection', 'identification', 'classification', 'prediction',
-            'estimation', 'generation', 'synthesis', 'analysis', 'processing', 'understanding',
-            'parsing', 'segmentation', 'clustering', 'matching', 'alignment', 'retrieval',
-            'recommendation', 'ranking', 'scoring', 'filtering', 'selection',
-            'language', 'speech', 'vision', 'image', 'video', 'text', 'document',
-            'sentiment', 'emotion', 'opinion', 'stance', 'aspect', 'topic', 'theme',
-            'semantic', 'syntactic', 'morphological', 'phonetic', 'lexical',
-            'translation', 'summarization', 'simplification', 'generation', 'completion',
-            'question', 'answering', 'dialogue', 'conversation', 'chatbot', 'assistant',
-            'knowledge', 'graph', 'extraction', 'construction', 'completion', 'reasoning',
-            'inference', 'entailment', 'contradiction', 'paraphrase', 'similarity'
+            'recognition', 'detection', 'identification', 'classification', 'prediction'
+        }
+        
+        # Default weights
+        self.weights = {
+            "method_weight_in_term": 1.0,
+            "method_weight_in_context": 0.5,
+            "task_weight_in_term": 1.0,
+            "task_weight_in_context": 0.5,
+            "tie_breaker_word_threshold": 2
+        }
+        
+        # Default scientific indicators
+        self.scientific_indicators = {
+            "technical_suffixes": ["-based", "-driven", "-aware", "-free", "tion", "sion", "ness", "ment"],
+            "technical_prefixes": ["multi-", "semi-", "auto-", "self-", "cross-", "meta-"],
+            "abbreviation_pattern": "\\d|[A-Z]{2,}"
         }
     
     def _normalize_term(self, term: str) -> str:
@@ -84,17 +119,17 @@ class SpaCyTermExtractor:
         return cleaned
     
     def _classify_term(self, term: str, context: str = "") -> str:
-        """Classify term as task or method based on keywords and context"""
+        """Classify term as task or method based on keywords and context using configurable weights"""
         term_lower = term.lower()
         context_lower = context.lower()
         
-        # Check for method indicators
-        method_score = sum(1 for kw in self.method_keywords if kw in term_lower)
-        method_score += sum(0.5 for kw in self.method_keywords if kw in context_lower)
+        # Check for method indicators using configurable weights
+        method_score = sum(self.weights["method_weight_in_term"] for kw in self.method_keywords if kw in term_lower)
+        method_score += sum(self.weights["method_weight_in_context"] for kw in self.method_keywords if kw in context_lower)
         
-        # Check for task indicators  
-        task_score = sum(1 for kw in self.task_keywords if kw in term_lower)
-        task_score += sum(0.5 for kw in self.task_keywords if kw in context_lower)
+        # Check for task indicators using configurable weights
+        task_score = sum(self.weights["task_weight_in_term"] for kw in self.task_keywords if kw in term_lower)
+        task_score += sum(self.weights["task_weight_in_context"] for kw in self.task_keywords if kw in context_lower)
         
         # Default classification based on scores
         if method_score > task_score:
@@ -103,7 +138,8 @@ class SpaCyTermExtractor:
             return 'task'
         else:
             # Tie-breaker: longer phrases tend to be tasks, shorter tend to be methods
-            return 'task' if len(term.split()) > 2 else 'method'
+            threshold = self.weights["tie_breaker_word_threshold"]
+            return 'task' if len(term.split()) > threshold else 'method'
     
     def extract_terms_from_text(self, text: str) -> Dict[str, List[str]]:
         """Extract terms from text using spaCy NER and patterns"""
@@ -156,22 +192,21 @@ class SpaCyTermExtractor:
         }
     
     def _is_scientific_term(self, term: str) -> bool:
-        """Check if a term looks like a scientific term"""
-        # Skip very common words
-        common_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'}
-        if term in common_words:
+        """Check if a term looks like a scientific term using configurable stopwords"""
+        # Skip stopwords from configuration
+        if term in self.stopwords:
             return False
         
-        # Check for scientific indicators
+        # Check for scientific indicators using configuration
         scientific_indicators = [
             # Has scientific keywords
             any(kw in term for kw in self.method_keywords | self.task_keywords),
-            # Contains technical suffixes
-            any(term.endswith(suffix) for suffix in ['-based', '-driven', '-aware', '-free', 'tion', 'sion', 'ness', 'ment']),
-            # Contains technical prefixes  
-            any(term.startswith(prefix) for prefix in ['multi-', 'semi-', 'auto-', 'self-', 'cross-', 'meta-']),
+            # Contains technical suffixes from config
+            any(term.endswith(suffix) for suffix in self.scientific_indicators["technical_suffixes"]),
+            # Contains technical prefixes from config
+            any(term.startswith(prefix) for prefix in self.scientific_indicators["technical_prefixes"]),
             # Contains numbers or abbreviations
-            bool(re.search(r'\d|[A-Z]{2,}', term)),
+            bool(re.search(self.scientific_indicators["abbreviation_pattern"], term)),
             # Multiple words with at least one technical word
             len(term.split()) > 1 and any(word in self.method_keywords | self.task_keywords for word in term.split())
         ]

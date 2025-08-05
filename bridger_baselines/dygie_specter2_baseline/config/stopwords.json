@@ -1,0 +1,28 @@
+{
+  "english_stopwords": [
+    "a", "an", "and", "are", "as", "at", "be", "been", "by", "for", "from",
+    "has", "he", "in", "is", "it", "its", "of", "on", "that", "the",
+    "to", "was", "were", "will", "with", "the", "this", "but", "they",
+    "have", "had", "what", "said", "each", "which", "she", "do", "how",
+    "their", "if", "up", "out", "many", "then", "them", "these", "so",
+    "some", "her", "would", "make", "like", "into", "him", "time", "two",
+    "more", "go", "no", "way", "could", "my", "than", "first", "been",
+    "call", "who", "oil", "sit", "now", "find", "down", "day", "did",
+    "get", "come", "made", "may", "part"
+  ],
+  
+  "academic_stopwords": [
+    "paper", "study", "research", "work", "article", "approach", "method",
+    "technique", "analysis", "result", "conclusion", "introduction", "abstract",
+    "figure", "table", "section", "chapter", "reference", "citation", "author",
+    "journal", "conference", "proceedings", "volume", "issue", "page", "pages",
+    "et", "al", "etc", "ie", "eg", "vs", "versus"
+  ],
+  
+  "scientific_noise_words": [
+    "using", "based", "novel", "new", "improved", "efficient", "effective",
+    "robust", "comprehensive", "extensive", "detailed", "systematic", "thorough",
+    "various", "different", "multiple", "several", "many", "few", "large",
+    "small", "high", "low", "good", "better", "best", "significant", "important"
+  ]
+}

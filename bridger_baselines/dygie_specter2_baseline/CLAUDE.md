@@ -8,7 +8,7 @@ This project implements a baseline version of the Bridger recommendation algorit
 
 | Component | Original Paper | Our Implementation |
 |-----------|----------------|-------------------|
-| Term Extraction | DyGIE++ | DyGIE++ |
+| Term Extraction | DyGIE++ | spaCy (simplified) |
 | Embeddings | cs-roberta | SPECTER2 |
 | Purpose | Research prototype | Production baseline |
 
@@ -21,12 +21,12 @@ This project implements a baseline version of the Bridger recommendation algorit
 ## Implementation Pipeline
 
 ### 1. Term Extraction
-- **Tool**: DyGIE++ model with SciERC weights
+- **Tool**: spaCy with scientific term classification
 - **Input**: Paper titles and abstracts from our dataset
 - **Output**: Extracted Task and Method keywords
 - **Categories**:
-  - Task terms: `['Task', 'OtherScientificTerm']`
-  - Method terms: `['Method', 'Material', 'Metric']`
+  - Task terms: research problems, domains, applications
+  - Method terms: algorithms, techniques, tools, frameworks
 
 ### 2. Embedding Generation
 - **Tool**: SPECTER2 model (`allenai/specter2_base`)

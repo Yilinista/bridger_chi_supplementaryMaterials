@@ -1,5 +1,0 @@
-{
-  "num_authors": 29809,
-  "embedding_dim": 768,
-  "generation_method": "multiprocessing"
-}
