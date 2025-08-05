@@ -131,7 +131,7 @@ class PersonaBridgerEmbeddingManager:
                 if processed_count % 50 == 0:
                     logger.info(f"Processing persona {processed_count}/{total_personas}")
                 
-                # Extract terms using DyGIE++ (simplified - you can integrate your DyGIE++ extractor)
+                # Extract terms using DyGIE++ integrated term extractor
                 persona_task_terms, persona_method_terms = self._extract_terms_from_papers(persona_papers)
                 
                 # Generate embeddings using SPECTER2
