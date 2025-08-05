@@ -164,15 +164,57 @@ class PersonaBridgerEmbeddingManager:
     
     def _extract_terms_from_papers(self, papers: List[Dict]) -> Tuple[List[str], List[str]]:
         """
-        Simplified term extraction (you should integrate your DyGIE++ extractor here)
+        Extract terms using DyGIE++ model (integrated with proper term extractor)
         """
-        # For now, use simple keyword extraction as placeholder
-        # In real implementation, you would use your DyGIE++ extractor on these papers
+        if not papers:
+            return [], []
         
+        # Import DyGIE++ extractor from the main module
+        try:
+            import sys
+            from pathlib import Path
+            
+            # Add scripts directory to Python path
+            scripts_dir = Path(__file__).parent / "scripts"
+            if str(scripts_dir) not in sys.path:
+                sys.path.append(str(scripts_dir))
+            
+            from embedding_generator import DyGIETermExtractor
+            
+            # Initialize term extractor if not already done
+            if not hasattr(self, '_term_extractor'):
+                dygie_path = Path(self.storage_dir).parent / "dygiepp" / "pretrained_models" / "scierc"
+                self._term_extractor = DyGIETermExtractor(str(dygie_path))
+            
+            # Create temporary author data structure for DyGIE++ processing
+            temp_author_id = "temp_persona"
+            temp_author_papers = {temp_author_id: papers}
+            
+            # Format and run DyGIE++ extraction
+            input_file = self._term_extractor.format_for_dygie(temp_author_papers)
+            predictions_file = self._term_extractor.run_dygie_prediction(input_file)
+            author_terms = self._term_extractor.parse_dygie_output(predictions_file)
+            
+            # Extract terms for our temporary author
+            if temp_author_id in author_terms:
+                task_terms = author_terms[temp_author_id]['task']
+                method_terms = author_terms[temp_author_id]['method']
+                return task_terms, method_terms
+            else:
+                logger.warning(f"No terms extracted for persona papers")
+                return [], []
+                
+        except Exception as e:
+            logger.warning(f"Failed to use DyGIE++ extraction, falling back to simple method: {e}")
+            # Fallback to simple keyword extraction
+            return self._simple_keyword_extraction(papers)
+    
+    def _simple_keyword_extraction(self, papers: List[Dict]) -> Tuple[List[str], List[str]]:
+        """Fallback simple keyword extraction method"""
         task_terms = []
         method_terms = []
         
-        # Simple keyword-based extraction (replace with DyGIE++)
+        # Simple keyword-based extraction (fallback only)
         task_keywords = [
             "classification", "detection", "recognition", "analysis", "prediction",
             "segmentation", "generation", "translation", "parsing", "extraction"
