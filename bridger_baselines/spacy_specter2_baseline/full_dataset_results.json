@@ -1,0 +1,22 @@
+{
+  "metadata": {
+    "total_pairs": 986,
+    "dataset_authors": 2785,
+    "available_authors": 4070,
+    "coverage_rate": 0.14290843806104128
+  },
+  "results": {
+    "ST": {
+      "hits@1": 0.0,
+      "hits@5": 0.007407407407407408,
+      "hits@10": 0.007407407407407408,
+      "MRR": 0.0024691358024691358
+    },
+    "sTdM": {
+      "hits@1": 0.0,
+      "hits@5": 0.0,
+      "hits@10": 0.0,
+      "MRR": 0.0
+    }
+  }
+}

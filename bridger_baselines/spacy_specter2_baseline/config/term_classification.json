@@ -1,0 +1,46 @@
+{
+  "classification_weights": {
+    "method_weight_in_term": 1.0,
+    "method_weight_in_context": 0.5,
+    "task_weight_in_term": 1.0,
+    "task_weight_in_context": 0.5,
+    "tie_breaker_word_threshold": 2
+  },
+  
+  "method_keywords": [
+    "algorithm", "method", "approach", "technique", "framework", "model", "system",
+    "neural", "network", "deep", "learning", "machine", "statistical", "regression",
+    "classification", "clustering", "optimization", "search", "genetic", "evolutionary",
+    "bayesian", "probabilistic", "stochastic", "deterministic", "heuristic",
+    "supervised", "unsupervised", "reinforcement", "semi-supervised",
+    "convolutional", "recurrent", "transformer", "attention", "encoder", "decoder",
+    "feature", "extraction", "selection", "engineering", "preprocessing",
+    "training", "testing", "validation", "cross-validation", "evaluation",
+    "metric", "measure", "score", "accuracy", "precision", "recall", "f1",
+    "loss", "function", "objective", "cost", "penalty", "regularization",
+    "gradient", "descent", "backpropagation", "forward", "backward",
+    "linear", "nonlinear", "kernel", "support", "vector", "decision", "tree",
+    "random", "forest", "ensemble", "boosting", "bagging", "voting"
+  ],
+  
+  "task_keywords": [
+    "task", "problem", "application", "domain", "field", "area", "research",
+    "recognition", "detection", "identification", "classification", "prediction",
+    "estimation", "generation", "synthesis", "analysis", "processing", "understanding",
+    "parsing", "segmentation", "clustering", "matching", "alignment", "retrieval",
+    "recommendation", "ranking", "scoring", "filtering", "selection",
+    "language", "speech", "vision", "image", "video", "text", "document",
+    "sentiment", "emotion", "opinion", "stance", "aspect", "topic", "theme",
+    "semantic", "syntactic", "morphological", "phonetic", "lexical",
+    "translation", "summarization", "simplification", "generation", "completion",
+    "question", "answering", "dialogue", "conversation", "chatbot", "assistant",
+    "knowledge", "graph", "extraction", "construction", "completion", "reasoning",
+    "inference", "entailment", "contradiction", "paraphrase", "similarity"
+  ],
+  
+  "scientific_indicators": {
+    "technical_suffixes": ["-based", "-driven", "-aware", "-free", "tion", "sion", "ness", "ment"],
+    "technical_prefixes": ["multi-", "semi-", "auto-", "self-", "cross-", "meta-"],
+    "abbreviation_pattern": "\\d|[A-Z]{2,}"
+  }
+}
