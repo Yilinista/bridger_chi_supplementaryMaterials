@@ -1022,8 +1022,6 @@ class BridgerEmbeddingManager:
             stats["persona_statistics"][persona_key] = {
                 "task_terms": len(terms.get('task', [])),
                 "method_terms": len(terms.get('method', [])),
-                "sample_task_terms": terms.get('task', [])[:5],
-                "sample_method_terms": terms.get('method', [])[:5]
             }
         
         stats_path = self.storage_dir / "persona_statistics.json"

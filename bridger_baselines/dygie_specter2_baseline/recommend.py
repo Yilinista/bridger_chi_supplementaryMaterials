@@ -89,8 +89,7 @@ class BridgerRecommender:
             List of (author_id, persona_info, score) tuples
         """
         if author_id not in self.available_authors:
-            available_sample = self.available_authors[:5]
-            raise ValueError(f"Author {author_id} not found. Available authors (sample): {available_sample}")
+            raise ValueError(f"Author {author_id} not found. Total available authors: {len(self.available_authors)}")
         
         logger.info(f"Getting {method} recommendations for author {author_id}")
         
