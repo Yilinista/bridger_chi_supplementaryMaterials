@@ -6,3 +6,6 @@ __pycache__/
 *.pyc
 *.pyo
 .cache/
+
+# Ignore dygiepp submodule content
+bridger_baselines/dygie_specter2_baseline/dygiepp/
