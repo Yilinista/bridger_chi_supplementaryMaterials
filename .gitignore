@@ -1,0 +1,8 @@
+# Ignore large embedding files
+bridger_baselines/dygie_specter2_baseline/global_embeddings/*.pkl
+*.pkl
+# Ignore cache and temporary files
+__pycache__/
+*.pyc
+*.pyo
+.cache/
