@@ -9,3 +9,5 @@ __pycache__/
 
 # Ignore dygiepp submodule content
 bridger_baselines/dygie_specter2_baseline/dygiepp/
+# Ignore dygiepp directory completely
+bridger_baselines/dygie_specter2_baseline/dygiepp/**
